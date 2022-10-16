@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <vector>
 
-// Need to link Ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
 
 struct ClientInfo {

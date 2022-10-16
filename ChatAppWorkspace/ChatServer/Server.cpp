@@ -1,6 +1,6 @@
 #include "Server.h"
 
-#define DEFAULT_PORT "5555"
+#define DEFAULT_PORT "8888"
 
 Server::Server()
 {
