@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Buffer.h"
+#include "Server.h"
 #include <string>
 
 int main(int argc, char* argv) {
@@ -30,5 +31,12 @@ int main(int argc, char* argv) {
 	char* result = stringTest.ReadString(0);
 	std::cout << "Assert serialized:" << names << " equals Deserialized: " << result << std::endl;
 
+	int state = -1;
+	Server server = Server();
+	server.Initialize();
+	state = server.Bind();
+	state = server.Listen();
+	server.Process();
+	server.ShutDown();
 	return 0;
 }
