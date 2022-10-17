@@ -1,9 +1,20 @@
 #include <iostream>
 #include "Buffer.h"
+#include "Common.h"
 #include "Server.h"
 #include <string>
 
 int main(int argc, char* argv) {
+	Header h;
+	h.messageId = 10;
+	h.packetLength = 20;
+
+	std::cout << "Message Id: " << h.messageId << " Packet length: " << h.packetLength << std::endl;
+
+	Buffer uIntTest = Buffer(2);
+	uIntTest.WriteUInt32(4294967294);
+	uint32_t g = uIntTest.ReadUInt32(0);
+	std::cout << "Assert: 4294967295 equals: " << g << std::endl;
 
 	Buffer signedIntTest = Buffer(2);
 	signedIntTest.WriteSignedInt(-21474836);

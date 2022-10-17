@@ -16,6 +16,10 @@ public:
 	CHATLIB_EXPORTS_API Buffer(size_t size);
 	CHATLIB_EXPORTS_API ~Buffer();
 
+	// Unsigned Int serialization/deserialization
+	CHATLIB_EXPORTS_API void WriteUInt32(uint32_t value);
+	CHATLIB_EXPORTS_API uint32_t ReadUInt32(size_t index);
+
 	// Signed Int serialization/deserialization
 	CHATLIB_EXPORTS_API void WriteSignedInt(int value);
 	CHATLIB_EXPORTS_API int ReadSignedInt(size_t index);

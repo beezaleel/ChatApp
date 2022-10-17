@@ -16,6 +16,22 @@ Buffer::Buffer(size_t size) {
 
 Buffer::~Buffer() {}
 
+void Buffer::WriteUInt32(uint32_t value) {
+	ResizeBuffer(sizeof(value));
+	for (int i = 0; i < m_buffer.size(); i++) {
+		m_buffer[i] = value >> (i * BYTE_SIZE);
+	}
+}
+
+uint32_t Buffer::ReadUInt32(size_t index) {
+	uint32_t value = 0;
+	for (int i = 0; i < sizeof(value); i++) {
+		value += m_buffer[index] << (i * BYTE_SIZE);
+		index++;
+	}
+	return value;
+}
+
 void Buffer::WriteSignedInt(int value) {
 	ResizeBuffer(sizeof(value));
 	for (int i = 0; i < m_buffer.size(); i++) {
