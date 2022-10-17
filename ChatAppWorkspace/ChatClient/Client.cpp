@@ -68,7 +68,7 @@ int Client::Receive(char buf[], int bufLen) {
 	state = recv(m_clientInfo.connectSocket, buf, bufLen, 0);
 	if (state == SOCKET_ERROR) {
 		if (WSAGetLastError() == WSAEWOULDBLOCK) {
-			printf("WouldBlock!\n");
+			//printf("WouldBlock!\n");
 		}
 		else
 		{
