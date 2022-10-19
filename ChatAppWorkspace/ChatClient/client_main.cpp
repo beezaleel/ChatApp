@@ -25,9 +25,12 @@ void SetConsoleColor(int);
 void ProcessMessage(std::string mesg) {
 	Buffer buf;
 	if (mesg.find("Join") != std::string::npos) {
+		std::string::size_type z = mesg.find("Join ");
+		if (z != std::string::npos)
+			mesg.erase(z, 5);
 		JoinRoom joinRoomPkt;
 		joinRoomPkt.messageId = 1;
-		joinRoomPkt.roomName = mesg.substr(6) + " " + name;
+		joinRoomPkt.roomName = mesg + " " + name;
 		joinRoomPkt.packetLength = 
 			sizeof(Header) + 
 			sizeof(joinRoomPkt.roomName.size()) + 
@@ -42,7 +45,9 @@ void ProcessMessage(std::string mesg) {
 		client.Send((const char*)(buf.Data.data()), joinRoomPkt.packetLength);
 	}
 	else if (mesg.find("Leave") != std::string::npos) {
-		printf("\n");
+		std::string::size_type z = mesg.find("Leave ");
+		if (z != std::string::npos)
+			mesg.erase(z, 6);
 		LeaveRoom leaveRoomPkt;
 		leaveRoomPkt.messageId = 2;
 		leaveRoomPkt.roomName = mesg.substr(6) + " " + name;
