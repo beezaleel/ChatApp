@@ -12,7 +12,7 @@ struct Header {
 	int messageId;
 };
 
-struct SendMessage : public Header {
+struct SendMessageData : public Header {
 	std::string roomName;
 	std::string message;
 };

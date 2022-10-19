@@ -5,7 +5,7 @@
 #include <string>
 
 int main(int argc, char* argv) {
-	Header h;
+	/*Header h;
 	h.messageId = 10;
 	h.packetLength = 20;
 
@@ -36,11 +36,11 @@ int main(int argc, char* argv) {
 	int c = shortTest2.ReadShort(0);
 	std::cout << "Assert: 22767 equals: " << c << std::endl;
 	
-	char names[] = "\n ?><()*&^%$#@!{}:";
+	char names[] = "?><()*&^%$#@!{}:";
 	Buffer stringTest = Buffer();
 	stringTest.WriteString(names);
 	char* result = stringTest.ReadString(0);
-	std::cout << "Assert serialized:" << names << " equals Deserialized: " << result << std::endl;
+	std::cout << "Assert serialized:" << names << " equals Deserialized: " << result << std::endl;*/
 
 	int state = -1;
 	Server server = Server();

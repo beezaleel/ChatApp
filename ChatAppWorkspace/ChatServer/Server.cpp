@@ -1,4 +1,5 @@
 #include "Server.h"
+#include <algorithm>
 
 #define DEFAULT_PORT "8888"
 
@@ -19,6 +20,7 @@ void Server::Accept() {
 		printf("Accepted connection from client!\n");
 		ClientInfo newClient;
 		newClient.socket = clientSocket;
+		newClient.buffer = Buffer(128);
 		newClient.connected = true;
 		m_serverInfo.clients.push_back(newClient);
 	}
@@ -67,6 +69,21 @@ void Server::Initialize() {
 
 	// Create Socket
 	CreateSocket();
+
+	// Create 3 Rooms
+	Room general;
+	general.roomName = "General";
+
+	Room staff;
+	staff.roomName = "Staff";
+
+	Room student;
+	student.roomName = "Student";
+	
+	m_serverInfo.rooms.push_back(general);
+	m_serverInfo.rooms.push_back(staff);
+	m_serverInfo.rooms.push_back(student);
+
 }
 
 int Server::Listen() {
@@ -87,7 +104,7 @@ int Server::Listen() {
 void Server::Process() {
 	struct timeval tVal;
 	tVal.tv_sec = 0;
-	tVal.tv_usec = 777 * 1000; // 500 milliseconds, half a second
+	tVal.tv_usec = 200 * 1000;
 
 	int selectResult;
 
@@ -119,26 +136,98 @@ void Server::Process() {
 				const int buflen = 128;
 				char buf[buflen];
 
+				int dataStartIndex = client.buffer.Data.size();
 				int recvResult = Receive(client, buflen, buf);
-				if (recvResult == 0)
-					continue;
-
-				int sendResult = send(client.socket, buf, recvResult, 0);
-				Send(client, buf, recvResult);
 			}
 		}
 	}
 
 }
 
-int Server::Receive(ClientInfo& client, const int bufLen, char buf[]) {
-	int recvResult = recv(client.socket, buf, bufLen, 0);
+int Server::Receive(ClientInfo& client, const int bufLen, char* buf) {
+	int recvResult = recv(client.socket, (char*)&(client.buffer.Data[0]), bufLen, 0);
+	if (recvResult == SOCKET_ERROR) {
+		printf("Receive failed. Error - %d\n", WSAGetLastError());
+	}
 
 	if (recvResult == 0) {
 		printf("Client disconnected!\n");
 		client.connected = false;
 	}
 	else if (recvResult > 0) {
+		if (client.buffer.Data.size() >= 4) {
+			client.packetLength = client.buffer.ReadUInt32(0);
+			unsigned int roomNameSize = client.buffer.ReadUInt32(6);
+			char* roomname = client.buffer.ReadString(10);
+
+			short messageId = client.buffer.ReadShort(4);
+			Room room;
+			room.roomName = roomname;
+			switch (messageId)
+			{
+			case MessageType::Join:
+				for (int i = 0; i < m_serverInfo.rooms.size(); i++) {
+					if (m_serverInfo.rooms[i].roomName == "General") {
+						User user;
+						user.name = "Ademola";
+						user.socket = client.socket;
+						m_serverInfo.rooms[i].members.push_back(user);
+						printf("Yes i can join a room\n");
+						// Send message to users in the group
+						std::string broadcast = user.name + ": joined group.";
+						Buffer broadcastBuffer = Buffer();
+						broadcastBuffer.WriteString((char*)broadcast.c_str());
+						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
+							ClientInfo roomMember;
+							roomMember.socket = m_serverInfo.rooms[i].members[j].socket;
+							Send(roomMember, (char*)broadcastBuffer.Data.data(), broadcast.size());
+						}
+					}
+				}
+				break;
+			case MessageType::Leave:
+				for (int i = 0; i < m_serverInfo.rooms.size(); i++) {
+					if (m_serverInfo.rooms[i].roomName == "General") {
+						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
+							if (m_serverInfo.rooms[i].members[j].name == "Ademola") {
+								m_serverInfo.rooms[i].members.erase(m_serverInfo.rooms[i].members.begin() + i);
+							}
+						}
+						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
+							// Send message to users in the group
+							std::string broadcast = "Ademola: left group.";
+							Buffer broadcastBuffer = Buffer();
+							broadcastBuffer.WriteString((char*)broadcast.c_str());
+							ClientInfo roomMember;
+							roomMember.socket = m_serverInfo.rooms[i].members[j].socket;
+							Send(roomMember, (char*)broadcastBuffer.Data.data(), broadcast.size());
+						}
+					}
+				}
+				break;
+			case MessageType::Send:
+				for (int i = 0; i < m_serverInfo.rooms.size(); i++) {
+					if (m_serverInfo.rooms[i].roomName == "General") {
+						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
+							std::string broadcast = "Im testing broadcasting to everyone.";
+							Buffer broadcastBuffer = Buffer();
+							broadcastBuffer.WriteString((char*)broadcast.c_str());
+							ClientInfo roomMember;
+							roomMember.socket = m_serverInfo.rooms[i].members[j].socket;
+							Send(roomMember, (char*)broadcastBuffer.Data.data(), broadcast.size());
+						}
+					}
+				}
+				break;
+			default:
+				break;
+			}
+			
+
+			std::cout << "packagelength: " << client.packetLength << " messageId:" << messageId << " roomNameSize:" << roomNameSize << " roomname:" << roomname << std::endl;
+
+		}
+		
 		printf("Bytes received: %d\n", recvResult);
 		printf("Message From the client:\n%s\n", buf);
 	}

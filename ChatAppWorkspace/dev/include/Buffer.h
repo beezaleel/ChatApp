@@ -15,6 +15,7 @@ public:
 	CHATLIB_EXPORTS_API Buffer();
 	CHATLIB_EXPORTS_API Buffer(size_t size);
 	CHATLIB_EXPORTS_API ~Buffer();
+	std::vector<uint8_t> Data;
 
 	// Unsigned Int serialization/deserialization
 	CHATLIB_EXPORTS_API void WriteUInt32(uint32_t value);
@@ -34,6 +35,4 @@ public:
 
 	// Resize vector
 	CHATLIB_EXPORTS_API void ResizeBuffer(size_t size);
-private:
-	std::vector<uint8_t> m_buffer;
 };

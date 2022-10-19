@@ -4,17 +4,12 @@
 #include <conio.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <windows.h>
 
 #define BACKSPACE 8
 #define ENTER 13
 #define ESC 27
-
-enum MessageType {
-	Join = 1,
-	Leave = 2,
-	Send = 3
-};
 
 Client client;
 std::string message = " ";
@@ -22,7 +17,71 @@ std::string name = "";
 
 void SetConsoleColor(int);
 
-void ProcessMessage() {}
+void ProcessMessage(std::string mesg) {
+	Buffer buf;
+	if (mesg.find("Join") != std::string::npos) {
+		//printf("Substring:%s\n", mesg.substr(6).c_str());
+		JoinRoom joinRoomPkt;
+		joinRoomPkt.messageId = 1;
+		joinRoomPkt.roomName = name + " " + mesg.substr(6);
+		joinRoomPkt.packetLength = 
+			sizeof(Header) + 
+			sizeof(joinRoomPkt.roomName.size()) + 
+			joinRoomPkt.roomName.size();
+
+		buf = Buffer();
+		buf.WriteUInt32(joinRoomPkt.packetLength);
+		buf.WriteShort(joinRoomPkt.messageId);
+		buf.WriteUInt32(joinRoomPkt.roomName.size());
+		buf.WriteString((char*)joinRoomPkt.roomName.c_str());
+
+		client.Send((const char*)(buf.Data.data()), joinRoomPkt.packetLength);
+	}
+	else if (mesg.find("Leave") != std::string::npos) {
+		//printf("Substring:%s\n", mesg.substr(6).c_str());
+		LeaveRoom leaveRoomPkt;
+		leaveRoomPkt.messageId = 2;
+		leaveRoomPkt.roomName = name + " " + mesg.substr(6);
+		leaveRoomPkt.packetLength =
+			sizeof(Header) +
+			sizeof(leaveRoomPkt.roomName.size()) +
+			leaveRoomPkt.roomName.size();
+
+		buf = Buffer();
+		buf.WriteUInt32(leaveRoomPkt.packetLength);
+		buf.WriteShort(leaveRoomPkt.messageId);
+		buf.WriteUInt32(leaveRoomPkt.roomName.size());
+		buf.WriteString((char*)leaveRoomPkt.roomName.c_str());
+
+		client.Send((const char*)(buf.Data.data()), leaveRoomPkt.packetLength);
+	}
+	else if (mesg.find("Send") != std::string::npos) {
+		//printf("Substring:%s\n", mesg.substr(5).c_str());
+		SendMessageData sendMessagePkt;
+		sendMessagePkt.messageId = 3;
+		sendMessagePkt.message = mesg.substr(5);
+		sendMessagePkt.roomName = name + " " + mesg.substr(5);
+		sendMessagePkt.packetLength =
+			sizeof(Header) +
+			sizeof(sendMessagePkt.roomName.size()) +
+			sendMessagePkt.roomName.size() + 
+			sizeof(sendMessagePkt.message.size()) +
+			sendMessagePkt.message.size();
+
+		buf = Buffer();
+		buf.WriteUInt32(sendMessagePkt.packetLength);
+		buf.WriteShort(sendMessagePkt.messageId);
+		buf.WriteUInt32(sendMessagePkt.roomName.size());
+		buf.WriteString((char*)sendMessagePkt.roomName.c_str());
+		buf.WriteUInt32(sendMessagePkt.message.size());
+		buf.WriteString((char*)sendMessagePkt.message.c_str());
+
+		client.Send((const char*)(buf.Data.data()), sendMessagePkt.packetLength);
+	}
+	else {
+		printf("Invalid message. Please use formats: 'Join roomname', 'Leave roomname' and 'Send roomname msg \n");
+	}
+}
 
 void ProcessKeyboardInput() {
 	if (_kbhit) {
@@ -34,12 +93,14 @@ void ProcessKeyboardInput() {
 				message.pop_back();
 			break;
 		case ENTER:
-			printf("Send message to server! \n");
-			message.clear();
+			if (message.length() > 0) {
+				ProcessMessage(message);
+				message.clear();
+				printf("\n");
+			}
 			break;
 		case ESC:
 			SetConsoleColor(15);
-			printf("Exiting program . . . \n");
 			exit(client.ShutDown());
 		default:
 			message += (char)key;
@@ -60,17 +121,6 @@ int main(int argc, char* argv) {
 	printf("#               Enter 'Join roomname' to Join room               #\n");
 	printf("#               Enter 'Leave roomname' to Leave room             #\n");
 	printf("##################################################################\n");
-
-	Header h;
-	h.messageId = 10;
-	h.packetLength = 20;
-
-	std::cout << "Message Id: " << h.messageId << " Packet length: " << h.packetLength << std::endl;
-
-	Buffer uIntTest = Buffer(2);
-	uIntTest.WriteUInt32(4294967294);
-	uint32_t g = uIntTest.ReadUInt32(0);
-	std::cout << "Assert: 4294967295 equals: " << g << std::endl;
 
 	const int recvBufLen = 128;
 	char recvBuf[recvBufLen];
@@ -97,32 +147,6 @@ int main(int argc, char* argv) {
 		client.Receive(recvBuf, recvBufLen);
 	}
 
-	system("Pause");
-
-	//const int recvBufLen = 128;
-	//char recvBuf[recvBufLen];
-
-	const char* buf = "Hello!";
-	int buflen = 6;
-
-	client.Send(buf, buflen);
-
-	bool retry = true;
-	while (retry)
-	{
-		int response = client.Receive(recvBuf, recvBufLen);
-		if (response == SOCKET_ERROR) {
-			if (WSAGetLastError() == WSAEWOULDBLOCK) {
-				retry = true;
-			}
-			else {
-				return 1;
-			}
-		}
-		else {
-			retry = false;
-		}
-	}
 	client.ShutDown();
 	return 0;
 }

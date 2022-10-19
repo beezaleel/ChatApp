@@ -1,4 +1,5 @@
 #include "Client.h"
+#include "Buffer.h"
 
 Client::Client()
 {
@@ -65,7 +66,8 @@ int Client::ManageSocket() {
 
 int Client::Receive(char buf[], int bufLen) {
 	int state = -1;
-	state = recv(m_clientInfo.connectSocket, buf, bufLen, 0);
+	Buffer buffer = Buffer(bufLen);
+	state = recv(m_clientInfo.connectSocket, (char*)&(buffer.Data[0]), bufLen, 0);
 	if (state == SOCKET_ERROR) {
 		if (WSAGetLastError() == WSAEWOULDBLOCK) {
 			//printf("WouldBlock!\n");
@@ -79,8 +81,11 @@ int Client::Receive(char buf[], int bufLen) {
 		}
 	}
 	else {
-		printf("Success!\n");
-		printf("recv %d bytes from the server!\n", state);
+		char* message = buffer.ReadString(0);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
+		printf("%s", message);
+		printf("\n");
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
 	}
 
 	return state;
@@ -96,8 +101,8 @@ int Client::Send(const char buf[], int bufLen) {
 		return 1;
 	}
 	else {
-		printf("Success!\n");
-		printf("Sent %d bytes to the server!\n", state);
+		//printf("Success!\n");
+		//printf("Sent %d bytes to the server!\n", state);
 	}
 
 	return state;
