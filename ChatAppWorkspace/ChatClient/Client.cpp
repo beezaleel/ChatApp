@@ -1,14 +1,24 @@
 #include "Client.h"
 #include "Buffer.h"
 
+/// <summary>
+/// Constructor
+/// </summary>
 Client::Client()
 {
 }
 
+/// <summary>
+/// Destructor
+/// </summary>
 Client::~Client()
 {
 }
 
+/// <summary>
+/// Connect to server
+/// </summary>
+/// <returns></returns>
 int Client::Connect() {
 	int state = -1;
 	printf("Connect to the server . . . \n");
@@ -32,6 +42,9 @@ int Client::Connect() {
 	return state;
 }
 
+/// <summary>
+/// Initialization of components
+/// </summary>
 void Client::Initialize() {
 	// Create and startup WSADATA
 	printf("Initializing client components! \n");
@@ -46,6 +59,10 @@ void Client::Initialize() {
 	CreateSocket();
 }
 
+/// <summary>
+/// Manage socket
+/// </summary>
+/// <returns></returns>
 int Client::ManageSocket() {
 	DWORD NonBlock = 1;
 	int state = -1;
@@ -64,6 +81,12 @@ int Client::ManageSocket() {
 	return state;
 }
 
+/// <summary>
+/// The receiver
+/// </summary>
+/// <param name="buf">The buffer</param>
+/// <param name="bufLen">Length</param>
+/// <returns></returns>
 int Client::Receive(char buf[], int bufLen) {
 	int state = -1;
 	Buffer buffer = Buffer(bufLen);
@@ -85,12 +108,18 @@ int Client::Receive(char buf[], int bufLen) {
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
 		printf("%s", message);
 		printf("\n");
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 1);
 	}
 
 	return state;
 }
 
+/// <summary>
+/// Send message
+/// </summary>
+/// <param name="buf"></param>
+/// <param name="bufLen"></param>
+/// <returns></returns>
 int Client::Send(const char buf[], int bufLen) {
 	int state = -1;
 	state = send(m_clientInfo.connectSocket, buf, bufLen, 0);
@@ -108,6 +137,10 @@ int Client::Send(const char buf[], int bufLen) {
 	return state;
 }
 
+/// <summary>
+/// Shutdown client
+/// </summary>
+/// <returns></returns>
 int Client::ShutDown() {
 	int state = -1;
 	printf("Shuting down client . . .\n");
@@ -129,6 +162,9 @@ int Client::ShutDown() {
 	return state;
 }
 
+/// <summary>
+/// Create socket
+/// </summary>
 void Client::CreateSocket() {
 	m_clientInfo.connectSocket =
 		socket(
@@ -147,6 +183,9 @@ void Client::CreateSocket() {
 	}
 }
 
+/// <summary>
+/// The address info
+/// </summary>
 void Client::GetServerAddrInfo() {
 	int state = -1;
 
@@ -166,6 +205,9 @@ void Client::GetServerAddrInfo() {
 	}
 }
 
+/// <summary>
+/// WSAtartup initialization
+/// </summary>
 void Client::Startup() {
 	int state = -1;
 	WORD wVersionRequested = MAKEWORD(2, 2);

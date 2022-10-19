@@ -1,16 +1,25 @@
 #include "Server.h"
 #include <algorithm>
+#include <sstream>
 
 #define DEFAULT_PORT "8888"
-
+/// <summary>
+/// The constructor
+/// </summary>
 Server::Server()
 {
 }
 
+/// <summary>
+/// The destructor
+/// </summary>
 Server::~Server()
 {
 }
 
+/// <summary>
+/// The socket accept
+/// </summary>
 void Server::Accept() {
 	SOCKET clientSocket = accept(m_serverInfo.listenSocket, NULL, NULL);
 	if (clientSocket == INVALID_SOCKET) {
@@ -26,9 +35,10 @@ void Server::Accept() {
 	}
 }
 
+/// <summary>
+/// Adds conected sockets
+/// </summary>
 void Server::AddConnectedSockets() {
-	// 2. Add all the connected sockets, to see if the is any information
-		//    to be recieved from the connected clients.
 	for (int i = 0; i < m_serverInfo.clients.size(); i++) {
 		ClientInfo& client = m_serverInfo.clients[i];
 		if (client.connected) {
@@ -37,6 +47,10 @@ void Server::AddConnectedSockets() {
 	}
 }
 
+/// <summary>
+/// Binds the socket to Address
+/// </summary>
+/// <returns></returns>
 int Server::Bind() {
 	int state = -1;
 	state = 
@@ -57,6 +71,9 @@ int Server::Bind() {
 	return state;
 }
 
+/// <summary>
+/// Initial startup of socket. Basic initialization
+/// </summary>
 void Server::Initialize() {
 	// Create and startup WSADATA
 	printf("Initializing server components! \n");
@@ -72,13 +89,13 @@ void Server::Initialize() {
 
 	// Create 3 Rooms
 	Room general;
-	general.roomName = "General";
+	general.roomName = "general";
 
 	Room staff;
-	staff.roomName = "Staff";
+	staff.roomName = "staff";
 
 	Room student;
-	student.roomName = "Student";
+	student.roomName = "student";
 	
 	m_serverInfo.rooms.push_back(general);
 	m_serverInfo.rooms.push_back(staff);
@@ -86,6 +103,10 @@ void Server::Initialize() {
 
 }
 
+/// <summary>
+/// Listening for active clients
+/// </summary>
+/// <returns></returns>
 int Server::Listen() {
 	int state = -1;
 	state = listen(m_serverInfo.listenSocket, SOMAXCONN);
@@ -101,6 +122,9 @@ int Server::Listen() {
 	return state;
 }
 
+/// <summary>
+/// Socket processing is done here
+/// </summary>
 void Server::Process() {
 	struct timeval tVal;
 	tVal.tv_sec = 0;
@@ -144,6 +168,13 @@ void Server::Process() {
 
 }
 
+/// <summary>
+/// Handles socket receive
+/// </summary>
+/// <param name="client">client socket</param>
+/// <param name="bufLen">Buffer length</param>
+/// <param name="buf">The buffer</param>
+/// <returns></returns>
 int Server::Receive(ClientInfo& client, const int bufLen, char* buf) {
 	int recvResult = recv(client.socket, (char*)&(client.buffer.Data[0]), bufLen, 0);
 	if (recvResult == SOCKET_ERROR) {
@@ -157,24 +188,28 @@ int Server::Receive(ClientInfo& client, const int bufLen, char* buf) {
 	else if (recvResult > 0) {
 		if (client.buffer.Data.size() >= 4) {
 			client.packetLength = client.buffer.ReadUInt32(0);
+			short messageId = client.buffer.ReadShort(4);
 			unsigned int roomNameSize = client.buffer.ReadUInt32(6);
 			char* roomname = client.buffer.ReadString(10);
-
-			short messageId = client.buffer.ReadShort(4);
 			Room room;
 			room.roomName = roomname;
+
 			switch (messageId)
 			{
 			case MessageType::Join:
 				for (int i = 0; i < m_serverInfo.rooms.size(); i++) {
-					if (m_serverInfo.rooms[i].roomName == "General") {
+					if (room.roomName.find(m_serverInfo.rooms[i].roomName) != std::string::npos) {
 						User user;
-						user.name = "Ademola";
+						// Remove special character
+						room.roomName.erase(remove(room.roomName.begin(), room.roomName.end(), 'Í'), room.roomName.end());
+						std::string name1, name2;
+						std::stringstream ss((room.roomName));
+						ss >> name1 >> name2;
+						user.name = name2;
 						user.socket = client.socket;
 						m_serverInfo.rooms[i].members.push_back(user);
-						printf("Yes i can join a room\n");
 						// Send message to users in the group
-						std::string broadcast = user.name + ": joined group.";
+						std::string broadcast = user.name + ": joined " + name1 + " group";
 						Buffer broadcastBuffer = Buffer();
 						broadcastBuffer.WriteString((char*)broadcast.c_str());
 						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
@@ -187,15 +222,19 @@ int Server::Receive(ClientInfo& client, const int bufLen, char* buf) {
 				break;
 			case MessageType::Leave:
 				for (int i = 0; i < m_serverInfo.rooms.size(); i++) {
-					if (m_serverInfo.rooms[i].roomName == "General") {
+					if (room.roomName.find(m_serverInfo.rooms[i].roomName) != std::string::npos) {
+						std::string name1, name2;
 						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
-							if (m_serverInfo.rooms[i].members[j].name == "Ademola") {
+							room.roomName.erase(remove(room.roomName.begin(), room.roomName.end(), 'Í'), room.roomName.end());
+							std::stringstream ss((room.roomName));
+							ss >> name1 >> name2;
+							if (m_serverInfo.rooms[i].members[j].name == name2) {
 								m_serverInfo.rooms[i].members.erase(m_serverInfo.rooms[i].members.begin() + i);
 							}
 						}
 						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
 							// Send message to users in the group
-							std::string broadcast = "Ademola: left group.";
+							std::string broadcast = name2 + " left " + name1 + " group";
 							Buffer broadcastBuffer = Buffer();
 							broadcastBuffer.WriteString((char*)broadcast.c_str());
 							ClientInfo roomMember;
@@ -207,14 +246,33 @@ int Server::Receive(ClientInfo& client, const int bufLen, char* buf) {
 				break;
 			case MessageType::Send:
 				for (int i = 0; i < m_serverInfo.rooms.size(); i++) {
-					if (m_serverInfo.rooms[i].roomName == "General") {
+					if (room.roomName.find(m_serverInfo.rooms[i].roomName) != std::string::npos) {
+						room.roomName.erase(remove(room.roomName.begin(), room.roomName.end(), 'Í'), room.roomName.end());
+						std::string roomn, msg, username;
+
+						std::string::size_type z = room.roomName.find(m_serverInfo.rooms[i].roomName);
+						if (z != std::string::npos)
+							room.roomName.erase(z, m_serverInfo.rooms[i].roomName.length());
+
+						roomn = m_serverInfo.rooms[i].roomName;
+						msg = room.roomName;
+
+						//std::stringstream ss((room.roomName));
+						//ss >> roomn >> msg;
 						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
-							std::string broadcast = "Im testing broadcasting to everyone.";
-							Buffer broadcastBuffer = Buffer();
-							broadcastBuffer.WriteString((char*)broadcast.c_str());
-							ClientInfo roomMember;
-							roomMember.socket = m_serverInfo.rooms[i].members[j].socket;
-							Send(roomMember, (char*)broadcastBuffer.Data.data(), broadcast.size());
+							if (m_serverInfo.rooms[i].members[j].socket == client.socket) {
+								username = m_serverInfo.rooms[i].members[j].name;
+							}
+						}
+						for (int j = 0; j < m_serverInfo.rooms[i].members.size(); j++) {
+							if (m_serverInfo.rooms[i].members[j].name != username) {
+								std::string broadcast = username + ": " + msg;
+								Buffer broadcastBuffer = Buffer();
+								broadcastBuffer.WriteString((char*)broadcast.c_str());
+								ClientInfo roomMember;
+								roomMember.socket = m_serverInfo.rooms[i].members[j].socket;
+								Send(roomMember, (char*)broadcastBuffer.Data.data(), broadcast.size());
+							}
 						}
 					}
 				}
@@ -237,6 +295,13 @@ int Server::Receive(ClientInfo& client, const int bufLen, char* buf) {
 	return recvResult;
 }
 
+/// <summary>
+/// Send message
+/// </summary>
+/// <param name="client">The client</param>
+/// <param name="buf">The buffer</param>
+/// <param name="receiveResult">Buffer length</param>
+/// <returns></returns>
 int Server::Send(ClientInfo& client, char buf[], int receiveResult) {
 	printf("Sending message : %s\n", buf);
 	int sendResult = send(client.socket, buf, receiveResult, 0);
@@ -253,6 +318,9 @@ int Server::Send(ClientInfo& client, char buf[], int receiveResult) {
 	return sendResult;
 }
 
+/// <summary>
+/// Shut down socket
+/// </summary>
 void Server::ShutDown() {
 	printf("Shutting down server . . .\n");
 	freeaddrinfo(m_serverInfo.info);
@@ -260,6 +328,9 @@ void Server::ShutDown() {
 	WSACleanup();
 }
 
+/// <summary>
+/// Create socket
+/// </summary>
 void Server::CreateSocket() {
 	m_serverInfo.listenSocket =
 		socket(
@@ -278,6 +349,9 @@ void Server::CreateSocket() {
 	}
 }
 
+/// <summary>
+/// Get address information
+/// </summary>
 void Server::GetServerAddrInfo() {
 	int state = -1;
 
@@ -299,6 +373,9 @@ void Server::GetServerAddrInfo() {
 	}
 }
 
+/// <summary>
+/// Startup WSAStartup
+/// </summary>
 void Server::Startup() {
 	int state = -1;
 	WORD wVersionRequested = MAKEWORD(2, 2);

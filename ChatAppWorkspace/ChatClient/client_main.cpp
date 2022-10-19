@@ -15,15 +15,19 @@ Client client;
 std::string message = " ";
 std::string name = "";
 
+
 void SetConsoleColor(int);
 
+/// <summary>
+/// Process user input
+/// </summary>
+/// <param name="mesg"></param>
 void ProcessMessage(std::string mesg) {
 	Buffer buf;
 	if (mesg.find("Join") != std::string::npos) {
-		//printf("Substring:%s\n", mesg.substr(6).c_str());
 		JoinRoom joinRoomPkt;
 		joinRoomPkt.messageId = 1;
-		joinRoomPkt.roomName = name + " " + mesg.substr(6);
+		joinRoomPkt.roomName = mesg.substr(6) + " " + name;
 		joinRoomPkt.packetLength = 
 			sizeof(Header) + 
 			sizeof(joinRoomPkt.roomName.size()) + 
@@ -38,10 +42,10 @@ void ProcessMessage(std::string mesg) {
 		client.Send((const char*)(buf.Data.data()), joinRoomPkt.packetLength);
 	}
 	else if (mesg.find("Leave") != std::string::npos) {
-		//printf("Substring:%s\n", mesg.substr(6).c_str());
+		printf("\n");
 		LeaveRoom leaveRoomPkt;
 		leaveRoomPkt.messageId = 2;
-		leaveRoomPkt.roomName = name + " " + mesg.substr(6);
+		leaveRoomPkt.roomName = mesg.substr(6) + " " + name;
 		leaveRoomPkt.packetLength =
 			sizeof(Header) +
 			sizeof(leaveRoomPkt.roomName.size()) +
@@ -56,11 +60,10 @@ void ProcessMessage(std::string mesg) {
 		client.Send((const char*)(buf.Data.data()), leaveRoomPkt.packetLength);
 	}
 	else if (mesg.find("Send") != std::string::npos) {
-		//printf("Substring:%s\n", mesg.substr(5).c_str());
 		SendMessageData sendMessagePkt;
 		sendMessagePkt.messageId = 3;
-		sendMessagePkt.message = mesg.substr(5);
-		sendMessagePkt.roomName = name + " " + mesg.substr(5);
+		sendMessagePkt.roomName = mesg.substr(5);
+		sendMessagePkt.message = name;
 		sendMessagePkt.packetLength =
 			sizeof(Header) +
 			sizeof(sendMessagePkt.roomName.size()) +
@@ -83,6 +86,9 @@ void ProcessMessage(std::string mesg) {
 	}
 }
 
+/// <summary>
+/// Keyboard input listener
+/// </summary>
 void ProcessKeyboardInput() {
 	if (_kbhit) {
 		int key = _getch();
@@ -110,6 +116,10 @@ void ProcessKeyboardInput() {
 	}
 }
 
+/// <summary>
+/// Change console color
+/// </summary>
+/// <param name=""></param>
 void SetConsoleColor(int color) {
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
@@ -120,6 +130,7 @@ int main(int argc, char* argv) {
 	printf("#               Enter username to start                          #\n");
 	printf("#               Enter 'Join roomname' to Join room               #\n");
 	printf("#               Enter 'Leave roomname' to Leave room             #\n");
+	printf("#               Groups: general, staff, students (case sensitive)#\n");
 	printf("##################################################################\n");
 
 	const int recvBufLen = 128;
