@@ -27,10 +27,10 @@ void ProcessMessage(std::string mesg) {
 	if (mesg.find("Join") != std::string::npos) {
 		std::string::size_type z = mesg.find("Join ");
 		if (z != std::string::npos)
-			mesg.erase(z, 5);
+			mesg.erase(z, 5).c_str();
 		JoinRoom joinRoomPkt;
 		joinRoomPkt.messageId = 1;
-		joinRoomPkt.roomName = mesg + " " + name;
+		joinRoomPkt.roomName = mesg + " " + name.c_str();
 		joinRoomPkt.packetLength = 
 			sizeof(Header) + 
 			sizeof(joinRoomPkt.roomName.size()) + 
@@ -47,10 +47,10 @@ void ProcessMessage(std::string mesg) {
 	else if (mesg.find("Leave") != std::string::npos) {
 		std::string::size_type z = mesg.find("Leave ");
 		if (z != std::string::npos)
-			mesg.erase(z, 6);
+			mesg.erase(z, 6).c_str();
 		LeaveRoom leaveRoomPkt;
 		leaveRoomPkt.messageId = 2;
-		leaveRoomPkt.roomName = mesg.substr(6) + " " + name;
+		leaveRoomPkt.roomName = mesg.substr(6) + " " + name.c_str();
 		leaveRoomPkt.packetLength =
 			sizeof(Header) +
 			sizeof(leaveRoomPkt.roomName.size()) +
